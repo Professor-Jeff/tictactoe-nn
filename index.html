@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tic-Tac-Toe — One Network, Trained Two Ways</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1c1e21; --muted: #6b7280;
+    --line: #e5e7eb; --accent: #2563eb; --ok: #16a34a; --warn: #d97706; --rl: #d97706;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px 72px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .card h2 { font-size: 1rem; margin: 0 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .card h2 + .status, .card h3 { margin-top: 0; }
+  .card h3 { font-size: .95rem; margin: 18px 0 8px; }
+  .status { font-size: 1.05rem; margin: 6px 0 12px; min-height: 1.4em; }
+  .status.untrained { color: var(--warn); font-weight: 600; }
+  .status.done { color: var(--ok); font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .stat { background: var(--bg); border-radius: 8px; padding: 10px; }
+  .stat .k { font-size: .75rem; color: var(--muted); text-transform: uppercase; }
+  .stat .v { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+  button { font: inherit; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; margin-right: 8px; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.rl { background: var(--rl); color: #fff; border-color: var(--rl); }
+  button:disabled { opacity: .5; cursor: default; }
+  progress { width: 100%; height: 10px; margin-top: 12px; }
+  details { margin-top: 16px; }
+  summary { cursor: pointer; color: var(--muted); }
+  code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--bg); padding: 10px 12px; border-radius: 8px; font-size: .85rem; overflow-x: auto; }
+  .rulesTbl { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .rulesTbl th, .rulesTbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .rulesTbl th { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .rulesTbl td { font-variant-numeric: tabular-nums; }
+  .rulesTbl td.good { color: var(--ok); font-weight: 600; }
+  .rulesTbl td.bad { color: #dc2626; font-weight: 600; }
+  .tblNote { font-size: .8rem; color: var(--muted); margin-top: 6px; }
+  .dataWrap { max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
+  .dataWrap .rulesTbl th { position: sticky; top: 0; background: var(--card); box-shadow: 0 1px 0 var(--line); }
+  .dataWrap .rulesTbl td.idx { color: var(--muted); font-size: .8rem; }
+  .mini { font-family: ui-monospace, Menlo, monospace; white-space: pre; font-size: .8rem; line-height: 1.1; }
+  /* game board */
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 0 8px 8px 0; }
+  .seg button { margin: 0; border: 0; border-radius: 0; padding: 8px 12px; font-size: .9rem; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--ink); color: #fff; }
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 300px; margin: 12px auto 10px; }
+  .cell { position: relative; aspect-ratio: 1; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; font-size: 2.6rem; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+  .cell.x { color: var(--accent); } .cell.o { color: var(--rl); }
+  .cell.win { background: #dcfce7; }
+  .cell .p { position: absolute; bottom: 5px; right: 7px; font-size: .72rem; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cell.best::after { content: ""; position: absolute; top: 7px; left: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+  .cell.full { cursor: default; }
+  .gameStatus { text-align: center; font-weight: 600; min-height: 1.4em; margin-bottom: 10px; }
+  .legend { font-size: .8rem; color: var(--muted); text-align: center; }
+  canvas { width: 100%; height: 160px; display: block; background: var(--bg); border-radius: 8px; }
+  .curveKey { font-size: .8rem; color: var(--muted); margin-top: 6px; }
+  .curveKey b { display: inline-block; width: 22px; height: 3px; vertical-align: middle; margin-right: 6px; }
+  /* QR code for presentations (lower left) */
+  #qrBtn { position: fixed; left: 16px; bottom: 16px; z-index: 20; margin: 0; font-size: .85rem; padding: 8px 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  #qrPanel { position: fixed; left: 16px; bottom: 64px; z-index: 20; display: none; flex-direction: column; align-items: center; gap: 8px; padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.14); }
+  #qrPanel.open { display: flex; }
+  #qrPanel .qrTitle { font-size: 1rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  #qrPanel svg { width: 220px; height: 220px; border: 8px solid #fff; background: #fff; display: block; }
+  #qrPanel .qrUrl { font-size: .85rem; color: var(--muted); letter-spacing: .03em; }
+  @media (max-width: 700px) { #qrPanel svg { width: 160px; height: 160px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tic-Tac-Toe: one neural network, trained two ways</h1>
+  <p class="sub">9 inputs → 128 hidden neurons → 9 outputs, the same kind of network as <a href="https://professor-jeff.github.io/pick-activity/">Pick Activity</a>.
+    One copy learns from <b>answers</b> that a perfect player (minimax) labels. A second copy gets <b>no answers at all</b>: it plays games and learns only from winning and losing.
+    Train both, then play them.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Play</h2>
+      <div>
+        <div class="seg" id="oppSeg">
+          <button data-opp="untrained">Untrained</button>
+          <button data-opp="supervised">Supervised</button>
+          <button data-opp="reinforce">Reinforce</button>
+          <button data-opp="minimax">Minimax</button>
+        </div>
+        <div class="seg" id="sideSeg">
+          <button data-side="1">I'm X (first)</button>
+          <button data-side="2">I'm O (second)</button>
+        </div>
+      </div>
+      <div class="gameStatus" id="gameStatus"></div>
+      <div class="board" id="board"></div>
+      <div class="legend" id="legend"></div>
+      <div style="text-align:center;margin-top:12px"><button id="newGameBtn">New game</button></div>
+
+      <details>
+        <summary>What the network sees</summary>
+        <p class="tblNote">The board becomes 9 numbers from the point of view of whoever moves next: <code>+1</code> my piece, <code>−1</code> their piece, <code>0</code> empty.
+          The 9 outputs are a probability for each square; occupied squares are forced to 0%. The dot marks minimax's best move(s) when minimax is the opponent.</p>
+        <div class="mini" id="encoded"></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Training</h2>
+
+      <h3 style="color:var(--accent)">Supervised — learn from labeled positions</h3>
+      <div id="supStatus" class="status untrained">Untrained — weights are random</div>
+      <div class="stats">
+        <div class="stat"><div class="k">Epoch</div><div class="v" id="supEpoch">0</div></div>
+        <div class="stat"><div class="k">Loss</div><div class="v" id="supLoss">—</div></div>
+        <div class="stat"><div class="k">Optimal (held-out)</div><div class="v" id="supAcc">—</div></div>
+      </div>
+      <button class="primary" id="supBtn">Train (100 epochs)</button>
+      <progress id="supProg" value="0" max="100"></progress>
+
+      <h3 style="color:var(--rl)">Reinforce — learn from wins and losses only</h3>
+      <div id="rlStatus" class="status untrained">Untrained — weights are random</div>
+      <div class="stats">
+        <div class="stat"><div class="k">Games played</div><div class="v" id="rlGames">0</div></div>
+        <div class="stat"><div class="k">Lost (recent)</div><div class="v" id="rlLoss">—</div></div>
+        <div class="stat"><div class="k">Optimal (all)</div><div class="v" id="rlAcc">—</div></div>
+      </div>
+      <button class="rl" id="rlBtn">Train (320,000 games)</button>
+      <button id="resetBtn">Reset both</button>
+      <progress id="rlProg" value="0" max="8000"></progress>
+
+      <h3>How often each network picks an optimal move</h3>
+      <canvas id="curve" width="800" height="320"></canvas>
+      <div class="curveKey"><b style="background:var(--accent)"></b>supervised &nbsp; <b style="background:var(--rl)"></b>reinforce &nbsp; · measured over all 4,520 positions</div>
+
+      <details>
+        <summary>The one line that changes</summary>
+        <pre>// supervised: predicted minus CORRECT
+dz2[k] = probs[k] - y[k];
+
+// reinforce:  predicted minus WHAT I DID, scaled by
+//             how the game ended (+1 won, −1 lost, 0 drew)
+dz2[k] = G * (probs[k] - (k === myMove ? 1 : 0));
+
+// everything below this line — backpropagation
+// and the weight update — is identical</pre>
+      </details>
+
+      <details>
+        <summary>Show the supervised training data (4,520 positions)</summary>
+        <div class="tblNote">Every position that can arise in play, labeled with minimax's best square(s). The supervised network trains on 80% of them; the other 20% are held out to test it. The reinforce network never sees this table.</div>
+        <div class="dataWrap">
+          <table class="rulesTbl">
+            <thead><tr><th>#</th><th>Board</th><th>To move</th><th>Best square(s)</th></tr></thead>
+            <tbody id="dataRows"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Scoreboard</h2>
+    <p class="tblNote" style="margin:0 0 10px">100 games per cell, networks play their most likely move (no exploration). Minimax picks randomly among its equally-best moves. Playing O against minimax is the hard case: X has the initiative and O must find the one saving reply every time.</p>
+    <button id="evalBtn">Evaluate all players</button>
+    <table class="rulesTbl" style="margin-top:12px">
+      <thead><tr><th>Player</th><th>Optimal moves</th><th>vs random as X</th><th>vs random as O</th><th>vs minimax as X</th><th>vs minimax as O</th></tr></thead>
+      <tbody id="scoreRows"></tbody>
+    </table>
+    <div class="tblNote">Cells show won / drew / lost.</div>
+  </div>
+
+  <p class="sub" style="margin-top:18px">
+    Notice: the supervised network picks an optimal move ~99% of the time and can still drop a game as O, because its rare mistakes land in exactly the forced positions. The reinforce network is only ~75% "optimal" yet never loses as X: it never cared which of several equally good moves it took, it only learned not to lose in the positions it actually reached. Same network, different training signal, different lesson learned.
+  </p>
+</div>
+
+<button id="qrBtn" type="button" aria-expanded="false" aria-controls="qrPanel">Show QR code</button>
+<div id="qrPanel" role="dialog" aria-label="QR code for this page">
+  <div class="qrTitle">Scan to try it</div>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges" role="img" aria-label="QR code for https://professor-jeff.github.io/tictactoe-nn/"><rect width="33" height="33" fill="#fff"/><path fill="#000" d="M0 0h7v1h-7zM8 0h6v1h-6zM15 0h1v1h-1zM17 0h3v1h-3zM23 0h1v1h-1zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h2v1h-2zM18 1h2v1h-2zM21 1h4v1h-4zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM8 2h1v1h-1zM15 2h1v1h-1zM18 2h2v1h-2zM22 2h1v1h-1zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h2v1h-2zM12 3h1v1h-1zM15 3h1v1h-1zM19 3h1v1h-1zM22 3h3v1h-3zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h1v1h-1zM10 4h1v1h-1zM12 4h2v1h-2zM15 4h2v1h-2zM18 4h2v1h-2zM22 4h2v1h-2zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM14 5h1v1h-1zM16 5h1v1h-1zM18 5h2v1h-2zM23 5h2v1h-2zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM8 7h1v1h-1zM13 7h1v1h-1zM15 7h3v1h-3zM20 7h3v1h-3zM1 8h2v1h-2zM4 8h1v1h-1zM6 8h2v1h-2zM11 8h2v1h-2zM17 8h5v1h-5zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h5v1h-5zM2 9h1v1h-1zM4 9h1v1h-1zM7 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM20 9h3v1h-3zM24 9h4v1h-4zM32 9h1v1h-1zM1 10h1v1h-1zM4 10h1v1h-1zM6 10h2v1h-2zM9 10h3v1h-3zM14 10h1v1h-1zM16 10h2v1h-2zM22 10h1v1h-1zM24 10h1v1h-1zM27 10h1v1h-1zM30 10h3v1h-3zM0 11h2v1h-2zM4 11h2v1h-2zM8 11h1v1h-1zM10 11h1v1h-1zM12 11h1v1h-1zM15 11h1v1h-1zM17 11h6v1h-6zM24 11h1v1h-1zM28 11h1v1h-1zM0 12h1v1h-1zM2 12h1v1h-1zM5 12h2v1h-2zM8 12h3v1h-3zM14 12h1v1h-1zM18 12h1v1h-1zM20 12h2v1h-2zM24 12h3v1h-3zM29 12h1v1h-1zM0 13h1v1h-1zM3 13h1v1h-1zM8 13h1v1h-1zM10 13h2v1h-2zM14 13h2v1h-2zM17 13h1v1h-1zM20 13h2v1h-2zM24 13h3v1h-3zM32 13h1v1h-1zM3 14h2v1h-2zM6 14h4v1h-4zM12 14h4v1h-4zM21 14h2v1h-2zM25 14h1v1h-1zM30 14h3v1h-3zM0 15h2v1h-2zM3 15h1v1h-1zM5 15h1v1h-1zM9 15h1v1h-1zM11 15h4v1h-4zM16 15h1v1h-1zM19 15h5v1h-5zM26 15h1v1h-1zM28 15h1v1h-1zM31 15h1v1h-1zM3 16h4v1h-4zM9 16h1v1h-1zM12 16h2v1h-2zM15 16h3v1h-3zM19 16h3v1h-3zM23 16h4v1h-4zM0 17h2v1h-2zM4 17h2v1h-2zM8 17h2v1h-2zM11 17h2v1h-2zM14 17h2v1h-2zM18 17h1v1h-1zM20 17h2v1h-2zM24 17h1v1h-1zM26 17h2v1h-2zM31 17h2v1h-2zM0 18h2v1h-2zM5 18h4v1h-4zM11 18h2v1h-2zM17 18h1v1h-1zM20 18h3v1h-3zM25 18h1v1h-1zM30 18h3v1h-3zM0 19h1v1h-1zM3 19h2v1h-2zM8 19h1v1h-1zM15 19h1v1h-1zM17 19h1v1h-1zM21 19h2v1h-2zM24 19h1v1h-1zM26 19h3v1h-3zM32 19h1v1h-1zM0 20h2v1h-2zM3 20h1v1h-1zM5 20h2v1h-2zM9 20h1v1h-1zM12 20h1v1h-1zM14 20h2v1h-2zM19 20h3v1h-3zM23 20h2v1h-2zM26 20h1v1h-1zM29 20h1v1h-1zM31 20h2v1h-2zM1 21h1v1h-1zM3 21h1v1h-1zM9 21h1v1h-1zM11 21h1v1h-1zM13 21h1v1h-1zM15 21h1v1h-1zM17 21h2v1h-2zM22 21h1v1h-1zM24 21h4v1h-4zM29 21h4v1h-4zM0 22h1v1h-1zM2 22h5v1h-5zM11 22h1v1h-1zM13 22h2v1h-2zM16 22h3v1h-3zM21 22h1v1h-1zM24 22h1v1h-1zM26 22h1v1h-1zM30 22h3v1h-3zM1 23h3v1h-3zM5 23h1v1h-1zM7 23h4v1h-4zM12 23h1v1h-1zM14 23h1v1h-1zM16 23h10v1h-10zM27 23h1v1h-1zM31 23h2v1h-2zM0 24h1v1h-1zM2 24h1v1h-1zM4 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h3v1h-3zM18 24h1v1h-1zM20 24h2v1h-2zM24 24h6v1h-6zM31 24h1v1h-1zM8 25h3v1h-3zM12 25h1v1h-1zM14 25h5v1h-5zM20 25h5v1h-5zM28 25h2v1h-2zM31 25h2v1h-2zM0 26h7v1h-7zM8 26h1v1h-1zM11 26h2v1h-2zM14 26h1v1h-1zM17 26h1v1h-1zM23 26h2v1h-2zM26 26h1v1h-1zM28 26h1v1h-1zM30 26h3v1h-3zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h4v1h-4zM14 27h2v1h-2zM17 27h1v1h-1zM19 27h3v1h-3zM24 27h1v1h-1zM28 27h1v1h-1zM31 27h2v1h-2zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM8 28h1v1h-1zM14 28h2v1h-2zM17 28h1v1h-1zM19 28h3v1h-3zM24 28h6v1h-6zM31 28h1v1h-1zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM9 29h1v1h-1zM11 29h3v1h-3zM15 29h1v1h-1zM20 29h2v1h-2zM23 29h2v1h-2zM28 29h1v1h-1zM31 29h2v1h-2zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM8 30h2v1h-2zM11 30h1v1h-1zM16 30h3v1h-3zM21 30h2v1h-2zM24 30h2v1h-2zM28 30h3v1h-3zM32 30h1v1h-1zM0 31h1v1h-1zM6 31h1v1h-1zM8 31h1v1h-1zM10 31h1v1h-1zM12 31h1v1h-1zM14 31h1v1h-1zM16 31h1v1h-1zM20 31h2v1h-2zM24 31h1v1h-1zM26 31h1v1h-1zM28 31h1v1h-1zM31 31h1v1h-1zM0 32h7v1h-7zM9 32h1v1h-1zM12 32h2v1h-2zM15 32h3v1h-3zM19 32h7v1h-7zM28 32h1v1h-1zM31 32h2v1h-2z"/></svg>
+  <div class="qrUrl">professor-jeff.github.io/tictactoe-nn</div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Tic-tac-toe core: the game, minimax, and the network — mirrors tictactoe_nn.py
+// ---------------------------------------------------------------------------
+var X_ = 1, O_ = 2;
+var LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+// seeded random numbers (mulberry32) so a classroom run is repeatable
+function makeRng(seed) {
+  var s = seed >>> 0;
+  var rng = function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    var t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  rng.normal = function () {                       // Box–Muller
+    var u = 1 - rng(), v = rng();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+  rng.pick = function (arr) { return arr[Math.floor(rng() * arr.length)]; };
+  return rng;
+}
+
+// --- PART 1: the game and the deterministic player (minimax) ---
+function winner(b) {
+  for (var i = 0; i < 8; i++) {
+    var L = LINES[i];
+    if (b[L[0]] && b[L[0]] === b[L[1]] && b[L[1]] === b[L[2]]) return b[L[0]];
+  }
+  return 0;
+}
+function legalMoves(b) { var m = []; for (var i = 0; i < 9; i++) if (b[i] === 0) m.push(i); return m; }
+function gameOver(b) { return winner(b) !== 0 || legalMoves(b).length === 0; }
+function other(p) { return p === X_ ? O_ : X_; }
+
+var MEMO = {};
+function minimax(b, player) {           // returns {score, best}: score for `player`, best = all top moves
+  var key = b.join("") + player;
+  if (MEMO[key]) return MEMO[key];
+  var w = winner(b), res;
+  if (w) res = { score: w === player ? 1 : -1, best: [] };
+  else {
+    var moves = legalMoves(b);
+    if (!moves.length) res = { score: 0, best: [] };
+    else {
+      var best = -2, bestMoves = [];
+      for (var i = 0; i < moves.length; i++) {
+        var m = moves[i];
+        b[m] = player;
+        var score = -minimax(b, other(player)).score;   // my score = minus theirs
+        b[m] = 0;
+        if (score > best) { best = score; bestMoves = [m]; }
+        else if (score === best) bestMoves.push(m);
+      }
+      res = { score: best, best: bestMoves };
+    }
+  }
+  MEMO[key] = res;
+  return res;
+}
+function minimaxMove(b, player, rng) { return rng.pick(minimax(b, player).best); }
+function randomMove(b, player, rng) { return rng.pick(legalMoves(b)); }
+
+// --- PART 2: board -> network inputs ---
+function encode(b, player) {            // +1 mine, -1 theirs, 0 empty
+  var x = new Float64Array(9);
+  for (var i = 0; i < 9; i++) x[i] = b[i] === player ? 1 : (b[i] ? -1 : 0);
+  return x;
+}
+function legalMask(b) { var m = new Float64Array(9); for (var i = 0; i < 9; i++) m[i] = b[i] === 0 ? 1 : 0; return m; }
+
+function allPositions() {               // every reachable position that still needs a move
+  var seen = {}, out = [];
+  function walk(b, player) {
+    var key = b.join("") + player;
+    if (seen[key] || gameOver(b)) return;
+    seen[key] = true;
+    out.push({ board: b.slice(), player: player });
+    for (var m = 0; m < 9; m++) if (b[m] === 0) { b[m] = player; walk(b, other(player)); b[m] = 0; }
+  }
+  walk([0,0,0,0,0,0,0,0,0], X_);
+  return out;
+}
+
+// --- PART 3: the network: 9 -> N_HID -> 9 (same shape as pick-activity, bigger) ---
+var N_IN = 9, N_HID = 128, N_OUT = 9;
+
+function initializeWeights(rng) {
+  var p = { W1: new Float64Array(N_IN * N_HID), b1: new Float64Array(N_HID),
+            W2: new Float64Array(N_HID * N_OUT), b2: new Float64Array(N_OUT) };
+  for (var i = 0; i < p.W1.length; i++) p.W1[i] = rng.normal() * 0.3;
+  for (var j = 0; j < p.W2.length; j++) p.W2[j] = rng.normal() * 0.3;
+  return p;
+}
+function zeroGrads() {
+  return { W1: new Float64Array(N_IN * N_HID), b1: new Float64Array(N_HID),
+           W2: new Float64Array(N_HID * N_OUT), b2: new Float64Array(N_OUT) };
+}
+
+// forward pass for ONE board. Occupied squares get -infinity so their probability is 0.
+function forward(p, x, mask) {
+  var z1 = new Float64Array(N_HID), a1 = new Float64Array(N_HID);
+  for (var j = 0; j < N_HID; j++) {
+    var s = p.b1[j];
+    for (var i = 0; i < N_IN; i++) s += x[i] * p.W1[i * N_HID + j];
+    z1[j] = s; a1[j] = s > 0 ? s : 0;                       // relu
+  }
+  var z2 = new Float64Array(N_OUT), mx = -Infinity;
+  for (var k = 0; k < N_OUT; k++) {
+    var t = p.b2[k];
+    for (var j2 = 0; j2 < N_HID; j2++) t += a1[j2] * p.W2[j2 * N_OUT + k];
+    z2[k] = mask[k] > 0 ? t : -1e9;
+    if (z2[k] > mx) mx = z2[k];
+  }
+  var probs = new Float64Array(N_OUT), sum = 0;             // softmax
+  for (var k2 = 0; k2 < N_OUT; k2++) { probs[k2] = Math.exp(z2[k2] - mx); sum += probs[k2]; }
+  for (var k3 = 0; k3 < N_OUT; k3++) probs[k3] /= sum;
+  return { z1: z1, a1: a1, probs: probs };
+}
+
+// backward pass for ONE board: given dz2 (output-layer error), add this example's gradients to g.
+// Identical to pick-activity. Supervised and REINFORCE differ only in how dz2 is computed.
+function backward(p, g, x, f, dz2) {
+  for (var j = 0; j < N_HID; j++) {
+    var a = f.a1[j];
+    if (a > 0) for (var k = 0; k < N_OUT; k++) g.W2[j * N_OUT + k] += a * dz2[k];
+  }
+  for (var k2 = 0; k2 < N_OUT; k2++) g.b2[k2] += dz2[k2];
+  for (var j2 = 0; j2 < N_HID; j2++) {
+    if (f.z1[j2] <= 0) continue;                              // relu: only neurons that fired get blamed
+    var da = 0;
+    for (var k3 = 0; k3 < N_OUT; k3++) da += dz2[k3] * p.W2[j2 * N_OUT + k3];
+    for (var i = 0; i < N_IN; i++) if (x[i] !== 0) g.W1[i * N_HID + j2] += x[i] * da;
+    g.b1[j2] += da;
+  }
+}
+function updateWeights(p, g, lr) {
+  var keys = ["W1", "b1", "W2", "b2"];
+  for (var n = 0; n < 4; n++) { var P = p[keys[n]], G = g[keys[n]]; for (var i = 0; i < P.length; i++) P[i] -= lr * G[i]; }
+}
+function argmax(a) { var b = 0; for (var i = 1; i < a.length; i++) if (a[i] > a[b]) b = i; return b; }
+function sample(probs, rng) {
+  var r = rng(), acc = 0;
+  for (var i = 0; i < probs.length; i++) { acc += probs[i]; if (r < acc) return i; }
+  return argmax(probs);
+}
+function networkMove(p, b, player, rng) {  // rng given: sample (explore). Not given: greedy.
+  var probs = forward(p, encode(b, player), legalMask(b)).probs;
+  return rng ? sample(probs, rng) : argmax(probs);
+}
+
+// --- PART 4a: SUPERVISED — minimax labels every position ---
+function makeSupervisedDataset() {
+  var pos = allPositions(), data = [];
+  for (var n = 0; n < pos.length; n++) {
+    var b = pos[n].board, pl = pos[n].player, best = minimax(b, pl).best;
+    var y = new Float64Array(9);
+    for (var i = 0; i < best.length; i++) y[best[i]] = 1 / best.length;
+    data.push({ x: encode(b, pl), mask: legalMask(b), y: y, board: b, player: pl });
+  }
+  return data;
+}
+function isOptimal(probs, y) { return y[argmax(probs)] > 0; }
+
+// one epoch of mini-batch training. dz2 = (probs - y) / batch  — "predicted minus correct"
+function supervisedEpoch(p, data, lr, batchSize, rng) {
+  var order = data.map(function (_, i) { return i; });
+  for (var i = order.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)); var t = order[i]; order[i] = order[j]; order[j] = t; }
+  var loss = 0, correct = 0;
+  for (var start = 0; start < order.length; start += batchSize) {
+    var g = zeroGrads(), end = Math.min(start + batchSize, order.length), n = end - start;
+    for (var e = start; e < end; e++) {
+      var d = data[order[e]], f = forward(p, d.x, d.mask), dz2 = new Float64Array(9);
+      for (var k = 0; k < 9; k++) { if (d.y[k] > 0) loss -= d.y[k] * Math.log(f.probs[k] + 1e-12); dz2[k] = (f.probs[k] - d.y[k]) / n; }
+      if (isOptimal(f.probs, d.y)) correct++;
+      backward(p, g, d.x, f, dz2);
+    }
+    updateWeights(p, g, lr);
+  }
+  return { loss: loss / data.length, optimal: correct / data.length };
+}
+function optimalRate(p, data) {
+  var c = 0;
+  for (var i = 0; i < data.length; i++) if (isOptimal(forward(p, data[i].x, data[i].mask).probs, data[i].y)) c++;
+  return c / data.length;
+}
+
+// --- PART 4b: REINFORCE — no labels, just outcomes ---
+// Play one game; the network samples its moves. Returns {result, history} where history holds
+// every move the NETWORK made. opponent=null is self-play: both sides are the network.
+function playGame(p, opponent, netPlays, rng) {
+  var b = [0,0,0,0,0,0,0,0,0], player = X_, history = [];
+  while (!gameOver(b)) {
+    var move;
+    if (opponent === null || player === netPlays) {
+      move = networkMove(p, b, player, rng);
+      history.push({ x: encode(b, player), mask: legalMask(b), move: move, mover: player });
+    } else move = opponent(b, player, rng);
+    b[move] = player; player = other(player);
+  }
+  return { result: winner(b), history: history };
+}
+var SCHEDULE = [null, null, null, null, null, null, randomMove, randomMove, minimaxMove, minimaxMove]; // 60/20/20
+
+// one round: play `games` games, then ONE weight update.
+// dz2 = G * (probs - one_hot(move)) / nMoves — "predicted minus what I did, scaled by how it ended"
+function reinforceRound(p, games, lr, rng) {
+  var recs = [], tally = { win: 0, draw: 0, loss: 0 };
+  for (var gi = 0; gi < games; gi++) {
+    var opp = SCHEDULE[gi % SCHEDULE.length], netPlays = gi % 2 === 0 ? X_ : O_;
+    var out = playGame(p, opp, netPlays, rng);
+    for (var h = 0; h < out.history.length; h++) {
+      var r = out.history[h], G = out.result === 0 ? 0 : (out.result === r.mover ? 1 : -1);
+      if (opp === minimaxMove && out.result === 0) G = 0.5;   // vs perfect play a draw is the best you can do
+      r.G = G; recs.push(r);
+    }
+    if (opp !== null) tally[out.result === 0 ? "draw" : (out.result === netPlays ? "win" : "loss")]++;
+  }
+  var g = zeroGrads(), n = recs.length;
+  for (var i = 0; i < n; i++) {
+    var rec = recs[i];
+    if (rec.G === 0) continue;                                 // a draw teaches nothing
+    var f = forward(p, rec.x, rec.mask), dz2 = new Float64Array(9);
+    for (var k = 0; k < 9; k++) dz2[k] = rec.G * (f.probs[k] - (k === rec.move ? 1 : 0)) / n;
+    backward(p, g, rec.x, f, dz2);
+  }
+  updateWeights(p, g, lr);
+  return tally;
+}
+
+// --- PART 5: measuring a player ---
+function evaluate(p, opponent, games, rng, netPlays) {
+  var t = { win: 0, draw: 0, loss: 0 };
+  for (var gi = 0; gi < games; gi++) {
+    var b = [0,0,0,0,0,0,0,0,0], player = X_;
+    while (!gameOver(b)) {
+      var move = player === netPlays ? networkMove(p, b, player, null) : opponent(b, player, rng);
+      b[move] = player; player = other(player);
+    }
+    var w = winner(b);
+    t[w === 0 ? "draw" : (w === netPlays ? "win" : "loss")]++;
+  }
+  return t;
+}
+
+
+// ---------------------------------------------------------------------------
+// The page
+// ---------------------------------------------------------------------------
+var $ = function (id) { return document.getElementById(id); };
+var DEFAULT_SEED = 7;             // a seed known to train well; Reset draws a new one
+var SUP_EPOCHS = 100, SUP_LR = 0.1, SUP_BATCH = 32;
+var RL_ROUNDS = 8000, RL_GAMES = 40, RL_LR = 0.3, RL_PER_FRAME = 20;
+
+var data = makeSupervisedDataset();           // 4,520 positions + minimax's best moves
+var rng, nets, trainIdx, testIdx, busy = false;
+var curves = { supervised: [], reinforce: [] };
+
+function freshNets(seed) {
+  rng = makeRng(seed);
+  nets = { untrained: initializeWeights(rng), supervised: initializeWeights(rng), reinforce: initializeWeights(rng) };
+  var order = data.map(function (_, i) { return i; });
+  for (var i = order.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)); var t = order[i]; order[i] = order[j]; order[j] = t; }
+  var split = Math.floor(0.8 * order.length);
+  trainIdx = order.slice(0, split).map(function (i) { return data[i]; });
+  testIdx = order.slice(split).map(function (i) { return data[i]; });
+  curves = { supervised: [], reinforce: [] };
+}
+
+// --- training data table (built once) ---
+(function () {
+  var sym = { 0: ".", 1: "X", 2: "O" }, rows = [];
+  for (var i = 0; i < data.length; i++) {
+    var b = data[i].board, best = minimax(b, data[i].player).best.map(function (m) { return m + 1; }).join(", ");
+    var mini = [0, 3, 6].map(function (r) { return sym[b[r]] + " " + sym[b[r + 1]] + " " + sym[b[r + 2]]; }).join("\n");
+    rows.push('<tr><td class="idx">' + (i + 1) + '</td><td class="mini">' + mini + '</td><td>' + sym[data[i].player] + '</td><td>' + best + '</td></tr>');
+  }
+  $("dataRows").innerHTML = rows.join("");
+})();
+
+// --- learning-curve chart ---
+function drawCurve() {
+  var c = $("curve"), ctx = c.getContext("2d"), W = c.width, H = c.height, L = 44, B = 28, T = 10, R = 10;
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = "16px system-ui, sans-serif"; ctx.fillStyle = "#6b7280"; ctx.strokeStyle = "#e5e7eb"; ctx.lineWidth = 1;
+  for (var y = 50; y <= 100; y += 10) {
+    var py = T + (H - T - B) * (1 - (y - 50) / 50);
+    ctx.beginPath(); ctx.moveTo(L, py); ctx.lineTo(W - R, py); ctx.stroke();
+    ctx.textAlign = "right"; ctx.fillText(y + "%", L - 6, py + 5);
+  }
+  ctx.textAlign = "center"; ctx.fillText("training progress →", (L + W - R) / 2, H - 6);
+  var colors = { supervised: "#2563eb", reinforce: "#d97706" };
+  for (var key in curves) {
+    var pts = curves[key]; if (pts.length < 2) continue;
+    ctx.strokeStyle = colors[key]; ctx.lineWidth = 3; ctx.beginPath();
+    for (var i = 0; i < pts.length; i++) {
+      var px = L + (W - L - R) * pts[i][0], py2 = T + (H - T - B) * (1 - (Math.max(50, pts[i][1] * 100) - 50) / 50);
+      if (i === 0) ctx.moveTo(px, py2); else ctx.lineTo(px, py2);
+    }
+    ctx.stroke();
+  }
+}
+
+// --- supervised training, one epoch per animation frame ---
+function trainSupervised() {
+  if (busy) return;
+  busy = true; setButtons();
+  var s = $("supStatus"); s.className = "status"; s.textContent = "Training…";
+  var epoch = 0, p = nets.supervised;
+  curves.supervised = [[0, optimalRate(p, data)]];
+  function step() {
+    var st = supervisedEpoch(p, trainIdx, SUP_LR, SUP_BATCH, rng); epoch++;
+    var held = optimalRate(p, testIdx);
+    $("supEpoch").textContent = epoch; $("supLoss").textContent = st.loss.toFixed(4);
+    $("supAcc").textContent = (held * 100).toFixed(1) + "%"; $("supProg").value = epoch;
+    if (epoch % 2 === 0 || epoch === SUP_EPOCHS) { curves.supervised.push([epoch / SUP_EPOCHS, optimalRate(p, data)]); drawCurve(); }
+    renderBoard();
+    if (epoch < SUP_EPOCHS) requestAnimationFrame(step);
+    else {
+      s.className = "status done";
+      s.textContent = "Trained — picks an optimal move in " + (held * 100).toFixed(1) + "% of " + testIdx.length + " positions it never saw";
+      busy = false; setButtons();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+// --- REINFORCE training, RL_PER_FRAME rounds per animation frame ---
+function trainReinforce() {
+  if (busy) return;
+  busy = true; setButtons();
+  var s = $("rlStatus"); s.className = "status"; s.textContent = "Playing itself and learning from the results…";
+  var round = 0, p = nets.reinforce, recent = [];
+  curves.reinforce = [[0, optimalRate(p, data)]];
+  function step() {
+    for (var i = 0; i < RL_PER_FRAME && round < RL_ROUNDS; i++) {
+      var lr = RL_LR * (1 - 0.9 * round / RL_ROUNDS);          // big steps early, small steps late
+      var t = reinforceRound(p, RL_GAMES, lr, rng); round++;
+      recent.push(t); if (recent.length > 25) recent.shift();  // last 25 rounds = 400 games vs opponents
+    }
+    var lost = 0, n = 0;
+    for (var r = 0; r < recent.length; r++) { lost += recent[r].loss; n += recent[r].win + recent[r].draw + recent[r].loss; }
+    $("rlGames").textContent = (round * RL_GAMES).toLocaleString(); $("rlLoss").textContent = (100 * lost / n).toFixed(0) + "%";
+    $("rlProg").value = round;
+    if (round % 100 === 0 || round === RL_ROUNDS) {
+      var opt = optimalRate(p, data);
+      $("rlAcc").textContent = (opt * 100).toFixed(1) + "%";
+      curves.reinforce.push([round / RL_ROUNDS, opt]); drawCurve();
+    }
+    renderBoard();
+    if (round < RL_ROUNDS) requestAnimationFrame(step);
+    else {
+      s.className = "status done";
+      s.textContent = "Trained — " + (round * RL_GAMES).toLocaleString() + " games, never shown a correct answer";
+      busy = false; setButtons();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+// --- scoreboard ---
+function evaluateAll() {
+  if (busy) return;
+  var names = ["untrained", "supervised", "reinforce"], rows = [];
+  function cell(t) {
+    var cls = t.loss === 0 ? "good" : (t.loss >= 50 ? "bad" : "");
+    return '<td class="' + cls + '">' + t.win + " / " + t.draw + " / " + t.loss + "</td>";
+  }
+  for (var i = 0; i < names.length; i++) {
+    var p = nets[names[i]];
+    rows.push("<tr><td><b>" + names[i] + "</b></td><td>" + (optimalRate(p, data) * 100).toFixed(0) + "%</td>" +
+      cell(evaluate(p, randomMove, 100, rng, X_)) + cell(evaluate(p, randomMove, 100, rng, O_)) +
+      cell(evaluate(p, minimaxMove, 100, rng, X_)) + cell(evaluate(p, minimaxMove, 100, rng, O_)) + "</tr>");
+  }
+  $("scoreRows").innerHTML = rows.join("");
+}
+
+// --- the game ---
+var game = { opp: "supervised", side: X_, board: [0,0,0,0,0,0,0,0,0], player: X_, over: false, winLine: null };
+var playRng = makeRng(12345);
+
+function winLine(b) {
+  for (var i = 0; i < 8; i++) { var L = LINES[i]; if (b[L[0]] && b[L[0]] === b[L[1]] && b[L[1]] === b[L[2]]) return L; }
+  return null;
+}
+function newGame() {
+  game.board = [0,0,0,0,0,0,0,0,0]; game.player = X_; game.over = false; game.winLine = null;
+  renderBoard();
+  if (game.player !== game.side) setTimeout(computerMove, 350);
+}
+function computerMove() {
+  if (game.over || game.player === game.side) return;
+  var b = game.board, move;
+  if (game.opp === "minimax") move = minimaxMove(b, game.player, playRng);
+  else move = networkMove(nets[game.opp], b, game.player, null);
+  place(move);
+}
+function place(m) {
+  game.board[m] = game.player;
+  game.player = other(game.player);
+  var w = winner(game.board);
+  if (w || legalMoves(game.board).length === 0) { game.over = true; game.winLine = winLine(game.board); }
+  renderBoard();
+  if (!game.over && game.player !== game.side) setTimeout(computerMove, 350);
+}
+function renderBoard() {
+  var b = game.board, el = $("board"), sym = { 0: "", 1: "X", 2: "O" };
+  var probs = null, best = null;
+  if (!game.over) {
+    if (game.opp === "minimax") best = minimax(b, game.player).best;
+    else probs = forward(nets[game.opp], encode(b, game.player), legalMask(b)).probs;
+  }
+  var html = "";
+  for (var i = 0; i < 9; i++) {
+    var cls = "cell" + (b[i] === X_ ? " x" : b[i] === O_ ? " o" : "") + (b[i] ? " full" : "") +
+      (game.winLine && game.winLine.indexOf(i) >= 0 ? " win" : "") + (best && best.indexOf(i) >= 0 ? " best" : "");
+    var p = probs && b[i] === 0 ? '<span class="p">' + (probs[i] * 100).toFixed(0) + "%</span>" : "";
+    html += '<div class="' + cls + '" data-i="' + i + '">' + sym[b[i]] + p + "</div>";
+  }
+  el.innerHTML = html;
+  var w = winner(b), st;
+  if (game.over) st = w === 0 ? "Draw." : (w === game.side ? "You win!" : (game.opp === "minimax" ? "Minimax wins." : "The " + game.opp + " network wins."));
+  else st = game.player === game.side ? "Your move" : "Thinking…";
+  $("gameStatus").textContent = st;
+  $("legend").textContent = game.opp === "minimax" ? "Green dot = a move minimax rates as best" :
+    "Small numbers = the " + game.opp + " network's probability for each square, for whoever moves next";
+  var x = encode(b, game.player);
+  $("encoded").textContent = "inputs:  [" + Array.prototype.map.call(x, function (v) { return (v > 0 ? "+1" : v < 0 ? "-1" : " 0"); }).join(", ") + "]" +
+    (probs ? "\noutputs: [" + Array.prototype.map.call(probs, function (v) { return (v * 100).toFixed(0).padStart(2) + "%"; }).join(", ") + "]" : "");
+}
+$("board").addEventListener("click", function (e) {
+  var c = e.target.closest(".cell"); if (!c) return;
+  var i = +c.getAttribute("data-i");
+  if (game.over || game.player !== game.side || game.board[i] !== 0) return;
+  place(i);
+});
+$("oppSeg").addEventListener("click", function (e) {
+  if (e.target.tagName !== "BUTTON") return;
+  game.opp = e.target.getAttribute("data-opp"); setSeg(); newGame();
+});
+$("sideSeg").addEventListener("click", function (e) {
+  if (e.target.tagName !== "BUTTON") return;
+  game.side = +e.target.getAttribute("data-side"); setSeg(); newGame();
+});
+function setSeg() {
+  var bs = $("oppSeg").querySelectorAll("button");
+  for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i].getAttribute("data-opp") === game.opp);
+  bs = $("sideSeg").querySelectorAll("button");
+  for (var j = 0; j < bs.length; j++) bs[j].classList.toggle("on", +bs[j].getAttribute("data-side") === game.side);
+}
+$("newGameBtn").addEventListener("click", newGame);
+
+// --- buttons and reset ---
+function setButtons() {
+  $("supBtn").disabled = busy || $("supStatus").classList.contains("done");
+  $("rlBtn").disabled = busy || $("rlStatus").classList.contains("done");
+  $("resetBtn").disabled = busy; $("evalBtn").disabled = busy;
+}
+function reset(seed) {
+  freshNets(seed);
+  $("supEpoch").textContent = "0"; $("supLoss").textContent = "—"; $("supAcc").textContent = "—"; $("supProg").value = 0;
+  $("rlGames").textContent = "0"; $("rlLoss").textContent = "—"; $("rlAcc").textContent = "—"; $("rlProg").value = 0;
+  var s = $("supStatus"); s.className = "status untrained"; s.textContent = "Untrained — weights are random";
+  s = $("rlStatus"); s.className = "status untrained"; s.textContent = "Untrained — weights are random";
+  $("scoreRows").innerHTML = "";
+  drawCurve(); setButtons(); newGame();
+}
+$("supBtn").addEventListener("click", trainSupervised);
+$("rlBtn").addEventListener("click", trainReinforce);
+$("evalBtn").addEventListener("click", evaluateAll);
+$("resetBtn").addEventListener("click", function () { if (!busy) reset(Math.floor(Math.random() * 1e9)); });
+setSeg();
+reset(DEFAULT_SEED);
+
+// QR code toggle so students can find this page during a presentation
+var qrBtn = $("qrBtn"), qrPanel = $("qrPanel");
+function setQr(open) {
+  qrPanel.classList.toggle("open", open);
+  qrBtn.textContent = open ? "Hide QR code" : "Show QR code";
+  qrBtn.setAttribute("aria-expanded", String(open));
+}
+qrBtn.addEventListener("click", function () { setQr(!qrPanel.classList.contains("open")); });
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") setQr(false); });
+</script>
+</body>
+</html>

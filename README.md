@@ -1,5 +1,7 @@
 # Tic-Tac-Toe — Three Ways to Build a Player
 
+**Live (play in the browser):** https://professor-jeff.github.io/tictactoe-nn/
+
 Companion to [pick-activity](https://github.com/Professor-Jeff/pick-activity) for COMP 138.
 The same tiny neural network, written from scratch in NumPy, learns tic-tac-toe
 two different ways — and a classic search algorithm plays it a third way.
@@ -8,7 +10,14 @@ two different ways — and a classic search algorithm plays it a third way.
 2. **Supervised network** — trained on positions that minimax labels. Never sees minimax.
 3. **Reinforcement network** — the *same* network, trained only from wins and losses. No labels at all.
 
-## Run it
+## In the browser
+
+Open the live link. Press **Train** under *Supervised* (about 10 seconds) and under
+*Reinforce* (about a minute), watch the learning curves, press **Evaluate all players**,
+then pick an opponent and play. `index.html` is a single self-contained file; edit it
+and push to `main` and GitHub Pages redeploys within about a minute.
+
+## Run the Python version
 
 ```bash
 pip install numpy
