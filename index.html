@@ -127,7 +127,7 @@
       <div class="stats">
         <div class="stat" title="One epoch = one pass through all 3,616 training positions. The network sees the same examples 100 times, nudging its weights a little each pass."><div class="k">Epoch</div><div class="v" id="supEpoch">0</div></div>
         <div class="stat" title="Cross-entropy loss: how wrong the network is, on average. Confidently right is near 0, confidently wrong is large. It cannot reach 0 here because many positions have several equally good moves to split probability over."><div class="k">Loss</div><div class="v" id="supLoss">—</div></div>
-        <div class="stat" title="How often the network's top choice is one of minimax's best moves, measured on the 904 positions it never trained on. This is the real test: did it learn the game, or just memorize the examples?"><div class="k">Optimal (held-out)</div><div class="v" id="supAcc">—</div></div>
+        <div class="stat" title="Before training, 904 of the 4,520 positions (20%) are set aside and never shown to the network. This is how often its top choice is one of minimax's best moves on those never-seen positions. It is the real test: did it learn the game, or just memorize the examples it trained on?"><div class="k">Optimal (never seen)</div><div class="v" id="supAcc">—</div></div>
       </div>
       <button class="primary" id="supBtn" data-tip="Step 1: teach this network from 4,520 positions labeled by minimax. About 10 seconds. Then play it.">Train (100 epochs)</button>
       <progress id="supProg" value="0" max="100" title="Supervised training progress: 100 epochs."></progress>
@@ -162,7 +162,7 @@ dz2[k] = G * (probs[k] - (k === myMove ? 1 : 0));
 
       <details>
         <summary>Show the supervised training data (4,520 positions)</summary>
-        <div class="tblNote">Every position that can arise in play, labeled with minimax's best square(s). The supervised network trains on 80% of them; the other 20% are held out to test it. The reinforce network never sees this table.</div>
+        <div class="tblNote">Every position that can arise in play, labeled with minimax's best square(s). The supervised network trains on 80% of them; the other 20% are set aside, never shown to it, and used only to test it. The reinforce network never sees this table.</div>
         <div class="dataWrap">
           <table class="rulesTbl">
             <thead><tr><th>#</th><th>Board</th><th>To move</th><th>Best square(s)</th></tr></thead>

@@ -432,7 +432,7 @@ def main():
 
     if args.mode in ("both", "supervised"):
         print("\n=== SUPERVISED: learn to imitate minimax from labeled positions ===")
-        # Hold out 20% of positions the network never trains on, to see whether
+        # Set aside 20% of positions the network never trains on, to see whether
         # it generalizes or just memorized a lookup table.
         idx = rng.permutation(len(X))
         split = int(0.8 * len(X))
@@ -443,7 +443,7 @@ def main():
         t0 = time.time()
         train_supervised(params, X[tr], M[tr], Y[tr], epochs=4000, learning_rate=0.5, log_every=500)
         probs, _ = forward(params, X[te], M[te])
-        print(f"Optimal-move rate on {len(te)} held-out positions: {is_optimal(probs, Y[te]).mean():.1%}"
+        print(f"Optimal-move rate on {len(te)} never-seen positions: {is_optimal(probs, Y[te]).mean():.1%}"
               f"   ({time.time() - t0:.0f}s)")
         trained["supervised"] = params
 
