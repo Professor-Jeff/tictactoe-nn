@@ -65,6 +65,14 @@
   canvas { width: 100%; height: 160px; display: block; background: var(--bg); border-radius: 8px; }
   .curveKey { font-size: .8rem; color: var(--muted); margin-top: 6px; }
   .curveKey b { display: inline-block; width: 22px; height: 3px; vertical-align: middle; margin-right: 6px; }
+  /* "train first" pop-up */
+  dialog { border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; max-width: 380px; box-shadow: 0 12px 32px rgba(0,0,0,.18); color: var(--ink); }
+  dialog::backdrop { background: rgba(0,0,0,.35); }
+  dialog h3 { margin: 0 0 8px; font-size: 1.05rem; }
+  dialog p { margin: 0 0 16px; line-height: 1.45; }
+  dialog .btns { text-align: right; }
+  @keyframes flash { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 6px rgba(37,99,235,.45); } }
+  .flash { animation: flash .7s ease-in-out 3; }
   /* QR code for presentations (lower left) */
   #qrBtn { position: fixed; left: 16px; bottom: 16px; z-index: 20; margin: 0; font-size: .85rem; padding: 8px 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
   #qrPanel { position: fixed; left: 16px; bottom: 64px; z-index: 20; display: none; flex-direction: column; align-items: center; gap: 8px; padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.14); }
@@ -180,6 +188,12 @@ dz2[k] = G * (probs[k] - (k === myMove ? 1 : 0));
     Notice: the supervised network picks an optimal move ~99% of the time and can still drop a game as O, because its rare mistakes land in exactly the forced positions. The reinforce network is only ~75% "optimal" yet never loses as X: it never cared which of several equally good moves it took, it only learned not to lose in the positions it actually reached. Same network, different training signal, different lesson learned.
   </p>
 </div>
+
+<dialog id="trainFirst">
+  <h3 id="trainFirstTitle">Train first</h3>
+  <p id="trainFirstText"></p>
+  <div class="btns"><button id="trainFirstGo" class="primary">Go to Train</button><button id="trainFirstOk">OK</button></div>
+</dialog>
 
 <button id="qrBtn" type="button" aria-expanded="false" aria-controls="qrPanel" title="Show a QR code so students can open this page on their phones.">Show QR code</button>
 <div id="qrPanel" role="dialog" aria-label="QR code for this page">
@@ -628,7 +642,8 @@ $("board").addEventListener("click", function (e) {
   place(i);
 });
 $("oppSeg").addEventListener("click", function (e) {
-  if (e.target.tagName !== "BUTTON" || e.target.classList.contains("off")) return;   // not trained yet
+  if (e.target.tagName !== "BUTTON") return;
+  if (e.target.classList.contains("off")) { showTrainFirst(e.target.getAttribute("data-opp")); return; }   // not trained yet
   game.opp = e.target.getAttribute("data-opp"); setSeg();
   renderBoard();                                   // keep the board: compare what each model would play here
   if (!game.over && game.player !== game.side) setTimeout(computerMove, 350);
@@ -644,6 +659,27 @@ function setSeg() {
   for (var j = 0; j < bs.length; j++) bs[j].classList.toggle("on", +bs[j].getAttribute("data-side") === game.side);
 }
 $("newGameBtn").addEventListener("click", newGame);
+
+// --- "train first" pop-up for the greyed-out models ---
+var TRAIN_INFO = {
+  supervised: { name: "supervised", btn: "supBtn", how: "press <b>Train (100 epochs)</b> under <b>Supervised</b>. It takes about 10 seconds." },
+  reinforce:  { name: "reinforce",  btn: "rlBtn",  how: "press <b>Train (320,000 games)</b> under <b>Reinforce</b>. It takes about a minute." }
+};
+var pendingTrain = null;
+function showTrainFirst(which) {
+  var info = TRAIN_INFO[which]; pendingTrain = info;
+  $("trainFirstTitle").textContent = "Train the " + info.name + " network first";
+  $("trainFirstText").innerHTML = "This network still has random weights, so there is nothing to play against yet. In the <b>Training</b> card, " + info.how + " Then come back and choose <b>" + info.name.charAt(0).toUpperCase() + info.name.slice(1) + "</b>.";
+  var d = $("trainFirst");
+  if (d.showModal) d.showModal(); else { alert(d.textContent); }
+}
+$("trainFirstOk").addEventListener("click", function () { $("trainFirst").close(); });
+$("trainFirstGo").addEventListener("click", function () {
+  $("trainFirst").close();
+  var b = $(pendingTrain.btn);
+  b.scrollIntoView({ behavior: "smooth", block: "center" });
+  b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash");   // restart the animation
+});
 
 // --- buttons and reset ---
 function setButtons() {
