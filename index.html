@@ -52,6 +52,7 @@
   .seg button { margin: 0; border: 0; border-radius: 0; padding: 8px 12px; font-size: .9rem; }
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button.on { background: var(--ink); color: #fff; }
+  .seg button.off { opacity: .4; cursor: not-allowed; }   /* greyed out until that network is trained */
   .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 300px; margin: 12px auto 10px; }
   .cell { position: relative; aspect-ratio: 1; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; font-size: 2.6rem; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
   .cell.x { color: var(--accent); } .cell.o { color: var(--rl); }
@@ -86,20 +87,20 @@
       <h2>Play</h2>
       <div>
         <div class="seg" id="oppSeg">
-          <button data-opp="untrained">Untrained</button>
+          <button data-opp="untrained" title="Click to play against the network with random weights. Nothing to train. It plays badly, and that is the point.">Untrained</button>
           <button data-opp="supervised">Supervised</button>
           <button data-opp="reinforce">Reinforce</button>
-          <button data-opp="minimax">Minimax</button>
+          <button data-opp="minimax" title="Click to play against minimax, the perfect player. Nothing to train. It searches every possible game before each move.">Minimax</button>
         </div>
         <div class="seg" id="sideSeg">
-          <button data-side="1">I'm X (first)</button>
-          <button data-side="2">I'm O (second)</button>
+          <button data-side="1" title="Click to go first as X. Starts a new game.">I'm X (first)</button>
+          <button data-side="2" title="Click to go second as O. Starts a new game and the computer opens.">I'm O (second)</button>
         </div>
       </div>
       <div class="gameStatus" id="gameStatus"></div>
       <div class="board" id="board"></div>
       <div class="legend" id="legend"></div>
-      <div style="text-align:center;margin-top:12px"><button id="newGameBtn">New game</button></div>
+      <div style="text-align:center;margin-top:12px"><button id="newGameBtn" title="Clear the board and start over against the same model.">New game</button></div>
       <p class="tblNote" style="text-align:center">Switch opponents mid-game: the board stays, and the numbers change to show what <i>that</i> model would play from here.</p>
 
       <details>
@@ -120,7 +121,7 @@
         <div class="stat"><div class="k">Loss</div><div class="v" id="supLoss">—</div></div>
         <div class="stat"><div class="k">Optimal (held-out)</div><div class="v" id="supAcc">—</div></div>
       </div>
-      <button class="primary" id="supBtn">Train (100 epochs)</button>
+      <button class="primary" id="supBtn" data-tip="Step 1: teach this network from 4,520 positions labeled by minimax. About 10 seconds. Then play it.">Train (100 epochs)</button>
       <progress id="supProg" value="0" max="100"></progress>
 
       <h3 style="color:var(--rl)">Reinforce — learn from wins and losses only</h3>
@@ -130,8 +131,8 @@
         <div class="stat"><div class="k">Lost (recent)</div><div class="v" id="rlLoss">—</div></div>
         <div class="stat"><div class="k">Optimal (all)</div><div class="v" id="rlAcc">—</div></div>
       </div>
-      <button class="rl" id="rlBtn">Train (320,000 games)</button>
-      <button id="resetBtn">Reset both</button>
+      <button class="rl" id="rlBtn" data-tip="Step 2: let this network learn by playing games. It is never shown a correct answer. About a minute. Then play it.">Train (320,000 games)</button>
+      <button id="resetBtn" title="Throw away both networks and start again from new random weights.">Reset both</button>
       <progress id="rlProg" value="0" max="8000"></progress>
 
       <h3>How often each network picks an optimal move</h3>
@@ -167,7 +168,7 @@ dz2[k] = G * (probs[k] - (k === myMove ? 1 : 0));
   <div class="card" style="margin-top:16px">
     <h2>Scoreboard</h2>
     <p class="tblNote" style="margin:0 0 10px">100 games per cell, networks play their most likely move (no exploration). Minimax picks randomly among its equally-best moves. Playing O against minimax is the hard case: X has the initiative and O must find the one saving reply every time.</p>
-    <button id="evalBtn">Evaluate all players</button>
+    <button id="evalBtn" title="Step 3: after training, play 100 games per cell to see how each model really does.">Evaluate all players</button>
     <table class="rulesTbl" style="margin-top:12px">
       <thead><tr><th>Player</th><th>Optimal moves</th><th>vs random as X</th><th>vs random as O</th><th>vs minimax as X</th><th>vs minimax as O</th></tr></thead>
       <tbody id="scoreRows"></tbody>
@@ -180,7 +181,7 @@ dz2[k] = G * (probs[k] - (k === myMove ? 1 : 0));
   </p>
 </div>
 
-<button id="qrBtn" type="button" aria-expanded="false" aria-controls="qrPanel">Show QR code</button>
+<button id="qrBtn" type="button" aria-expanded="false" aria-controls="qrPanel" title="Show a QR code so students can open this page on their phones.">Show QR code</button>
 <div id="qrPanel" role="dialog" aria-label="QR code for this page">
   <div class="qrTitle">Scan to try it</div>
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges" role="img" aria-label="QR code for https://professor-jeff.github.io/tictactoe-nn/"><rect width="33" height="33" fill="#fff"/><path fill="#000" d="M0 0h7v1h-7zM8 0h6v1h-6zM15 0h1v1h-1zM17 0h3v1h-3zM23 0h1v1h-1zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h2v1h-2zM18 1h2v1h-2zM21 1h4v1h-4zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM8 2h1v1h-1zM15 2h1v1h-1zM18 2h2v1h-2zM22 2h1v1h-1zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h2v1h-2zM12 3h1v1h-1zM15 3h1v1h-1zM19 3h1v1h-1zM22 3h3v1h-3zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h1v1h-1zM10 4h1v1h-1zM12 4h2v1h-2zM15 4h2v1h-2zM18 4h2v1h-2zM22 4h2v1h-2zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM14 5h1v1h-1zM16 5h1v1h-1zM18 5h2v1h-2zM23 5h2v1h-2zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM8 7h1v1h-1zM13 7h1v1h-1zM15 7h3v1h-3zM20 7h3v1h-3zM1 8h2v1h-2zM4 8h1v1h-1zM6 8h2v1h-2zM11 8h2v1h-2zM17 8h5v1h-5zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h5v1h-5zM2 9h1v1h-1zM4 9h1v1h-1zM7 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM20 9h3v1h-3zM24 9h4v1h-4zM32 9h1v1h-1zM1 10h1v1h-1zM4 10h1v1h-1zM6 10h2v1h-2zM9 10h3v1h-3zM14 10h1v1h-1zM16 10h2v1h-2zM22 10h1v1h-1zM24 10h1v1h-1zM27 10h1v1h-1zM30 10h3v1h-3zM0 11h2v1h-2zM4 11h2v1h-2zM8 11h1v1h-1zM10 11h1v1h-1zM12 11h1v1h-1zM15 11h1v1h-1zM17 11h6v1h-6zM24 11h1v1h-1zM28 11h1v1h-1zM0 12h1v1h-1zM2 12h1v1h-1zM5 12h2v1h-2zM8 12h3v1h-3zM14 12h1v1h-1zM18 12h1v1h-1zM20 12h2v1h-2zM24 12h3v1h-3zM29 12h1v1h-1zM0 13h1v1h-1zM3 13h1v1h-1zM8 13h1v1h-1zM10 13h2v1h-2zM14 13h2v1h-2zM17 13h1v1h-1zM20 13h2v1h-2zM24 13h3v1h-3zM32 13h1v1h-1zM3 14h2v1h-2zM6 14h4v1h-4zM12 14h4v1h-4zM21 14h2v1h-2zM25 14h1v1h-1zM30 14h3v1h-3zM0 15h2v1h-2zM3 15h1v1h-1zM5 15h1v1h-1zM9 15h1v1h-1zM11 15h4v1h-4zM16 15h1v1h-1zM19 15h5v1h-5zM26 15h1v1h-1zM28 15h1v1h-1zM31 15h1v1h-1zM3 16h4v1h-4zM9 16h1v1h-1zM12 16h2v1h-2zM15 16h3v1h-3zM19 16h3v1h-3zM23 16h4v1h-4zM0 17h2v1h-2zM4 17h2v1h-2zM8 17h2v1h-2zM11 17h2v1h-2zM14 17h2v1h-2zM18 17h1v1h-1zM20 17h2v1h-2zM24 17h1v1h-1zM26 17h2v1h-2zM31 17h2v1h-2zM0 18h2v1h-2zM5 18h4v1h-4zM11 18h2v1h-2zM17 18h1v1h-1zM20 18h3v1h-3zM25 18h1v1h-1zM30 18h3v1h-3zM0 19h1v1h-1zM3 19h2v1h-2zM8 19h1v1h-1zM15 19h1v1h-1zM17 19h1v1h-1zM21 19h2v1h-2zM24 19h1v1h-1zM26 19h3v1h-3zM32 19h1v1h-1zM0 20h2v1h-2zM3 20h1v1h-1zM5 20h2v1h-2zM9 20h1v1h-1zM12 20h1v1h-1zM14 20h2v1h-2zM19 20h3v1h-3zM23 20h2v1h-2zM26 20h1v1h-1zM29 20h1v1h-1zM31 20h2v1h-2zM1 21h1v1h-1zM3 21h1v1h-1zM9 21h1v1h-1zM11 21h1v1h-1zM13 21h1v1h-1zM15 21h1v1h-1zM17 21h2v1h-2zM22 21h1v1h-1zM24 21h4v1h-4zM29 21h4v1h-4zM0 22h1v1h-1zM2 22h5v1h-5zM11 22h1v1h-1zM13 22h2v1h-2zM16 22h3v1h-3zM21 22h1v1h-1zM24 22h1v1h-1zM26 22h1v1h-1zM30 22h3v1h-3zM1 23h3v1h-3zM5 23h1v1h-1zM7 23h4v1h-4zM12 23h1v1h-1zM14 23h1v1h-1zM16 23h10v1h-10zM27 23h1v1h-1zM31 23h2v1h-2zM0 24h1v1h-1zM2 24h1v1h-1zM4 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h3v1h-3zM18 24h1v1h-1zM20 24h2v1h-2zM24 24h6v1h-6zM31 24h1v1h-1zM8 25h3v1h-3zM12 25h1v1h-1zM14 25h5v1h-5zM20 25h5v1h-5zM28 25h2v1h-2zM31 25h2v1h-2zM0 26h7v1h-7zM8 26h1v1h-1zM11 26h2v1h-2zM14 26h1v1h-1zM17 26h1v1h-1zM23 26h2v1h-2zM26 26h1v1h-1zM28 26h1v1h-1zM30 26h3v1h-3zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h4v1h-4zM14 27h2v1h-2zM17 27h1v1h-1zM19 27h3v1h-3zM24 27h1v1h-1zM28 27h1v1h-1zM31 27h2v1h-2zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM8 28h1v1h-1zM14 28h2v1h-2zM17 28h1v1h-1zM19 28h3v1h-3zM24 28h6v1h-6zM31 28h1v1h-1zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM9 29h1v1h-1zM11 29h3v1h-3zM15 29h1v1h-1zM20 29h2v1h-2zM23 29h2v1h-2zM28 29h1v1h-1zM31 29h2v1h-2zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM8 30h2v1h-2zM11 30h1v1h-1zM16 30h3v1h-3zM21 30h2v1h-2zM24 30h2v1h-2zM28 30h3v1h-3zM32 30h1v1h-1zM0 31h1v1h-1zM6 31h1v1h-1zM8 31h1v1h-1zM10 31h1v1h-1zM12 31h1v1h-1zM14 31h1v1h-1zM16 31h1v1h-1zM20 31h2v1h-2zM24 31h1v1h-1zM26 31h1v1h-1zM28 31h1v1h-1zM31 31h1v1h-1zM0 32h7v1h-7zM9 32h1v1h-1zM12 32h2v1h-2zM15 32h3v1h-3zM19 32h7v1h-7zM28 32h1v1h-1zM31 32h2v1h-2z"/></svg>
@@ -567,7 +568,7 @@ function evaluateAll() {
 }
 
 // --- the game ---
-var game = { opp: "supervised", side: X_, board: [0,0,0,0,0,0,0,0,0], player: X_, over: false, winLine: null };
+var game = { opp: "untrained", side: X_, board: [0,0,0,0,0,0,0,0,0], player: X_, over: false, winLine: null };
 var playRng = makeRng(12345);
 
 function winLine(b) {
@@ -606,7 +607,8 @@ function renderBoard() {
     var cls = "cell" + (b[i] === X_ ? " x" : b[i] === O_ ? " o" : "") + (b[i] ? " full" : "") +
       (game.winLine && game.winLine.indexOf(i) >= 0 ? " win" : "") + (best && best.indexOf(i) >= 0 ? " best" : "");
     var p = probs && b[i] === 0 ? '<span class="p">' + (probs[i] * 100).toFixed(0) + "%</span>" : "";
-    html += '<div class="' + cls + '" data-i="' + i + '">' + sym[b[i]] + p + "</div>";
+    var tip = game.over ? "" : (b[i] ? "" : (game.player === game.side ? "Click to place your " + (game.side === X_ ? "X" : "O") + " here" : "Waiting for the computer to move"));
+    html += '<div class="' + cls + '" data-i="' + i + '"' + (tip ? ' title="' + tip + '"' : "") + '>' + sym[b[i]] + p + "</div>";
   }
   el.innerHTML = html;
   var w = winner(b), st;
@@ -626,7 +628,7 @@ $("board").addEventListener("click", function (e) {
   place(i);
 });
 $("oppSeg").addEventListener("click", function (e) {
-  if (e.target.tagName !== "BUTTON") return;
+  if (e.target.tagName !== "BUTTON" || e.target.classList.contains("off")) return;   // not trained yet
   game.opp = e.target.getAttribute("data-opp"); setSeg();
   renderBoard();                                   // keep the board: compare what each model would play here
   if (!game.over && game.player !== game.side) setTimeout(computerMove, 350);
@@ -645,9 +647,20 @@ $("newGameBtn").addEventListener("click", newGame);
 
 // --- buttons and reset ---
 function setButtons() {
-  $("supBtn").disabled = busy || $("supStatus").classList.contains("done");
-  $("rlBtn").disabled = busy || $("rlStatus").classList.contains("done");
+  var supDone = $("supStatus").classList.contains("done"), rlDone = $("rlStatus").classList.contains("done");
+  $("supBtn").disabled = busy || supDone;
+  $("rlBtn").disabled = busy || rlDone;
   $("resetBtn").disabled = busy; $("evalBtn").disabled = busy;
+  $("oppSeg").querySelector("[data-opp=supervised]").classList.toggle("off", !supDone);
+  $("oppSeg").querySelector("[data-opp=reinforce]").classList.toggle("off", !rlDone);
+  $("oppSeg").querySelector("[data-opp=supervised]").title = supDone
+    ? "Click to play against the supervised network."
+    : "Train before playing: press Train under Supervised (about 10 seconds), then click here.";
+  $("oppSeg").querySelector("[data-opp=reinforce]").title = rlDone
+    ? "Click to play against the reinforce network."
+    : "Train before playing: press Train under Reinforce (about a minute), then click here.";
+  $("supBtn").title = supDone ? "Already trained. Press Reset both to start over." : $("supBtn").getAttribute("data-tip");
+  $("rlBtn").title = rlDone ? "Already trained. Press Reset both to start over." : $("rlBtn").getAttribute("data-tip");
 }
 function reset(seed) {
   freshNets(seed);
@@ -656,6 +669,7 @@ function reset(seed) {
   var s = $("supStatus"); s.className = "status untrained"; s.textContent = "Untrained — weights are random";
   s = $("rlStatus"); s.className = "status untrained"; s.textContent = "Untrained — weights are random";
   $("scoreRows").innerHTML = "";
+  if (game.opp === "supervised" || game.opp === "reinforce") { game.opp = "untrained"; setSeg(); }   // those need training again
   drawCurve(); setButtons(); newGame();
 }
 $("supBtn").addEventListener("click", trainSupervised);
