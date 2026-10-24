@@ -125,26 +125,26 @@
       <h3 style="color:var(--accent)">Supervised — learn from labeled positions</h3>
       <div id="supStatus" class="status untrained">Untrained — weights are random</div>
       <div class="stats">
-        <div class="stat"><div class="k">Epoch</div><div class="v" id="supEpoch">0</div></div>
-        <div class="stat"><div class="k">Loss</div><div class="v" id="supLoss">—</div></div>
-        <div class="stat"><div class="k">Optimal (held-out)</div><div class="v" id="supAcc">—</div></div>
+        <div class="stat" title="One epoch = one pass through all 3,616 training positions. The network sees the same examples 100 times, nudging its weights a little each pass."><div class="k">Epoch</div><div class="v" id="supEpoch">0</div></div>
+        <div class="stat" title="Cross-entropy loss: how wrong the network is, on average. Confidently right is near 0, confidently wrong is large. It cannot reach 0 here because many positions have several equally good moves to split probability over."><div class="k">Loss</div><div class="v" id="supLoss">—</div></div>
+        <div class="stat" title="How often the network's top choice is one of minimax's best moves, measured on the 904 positions it never trained on. This is the real test: did it learn the game, or just memorize the examples?"><div class="k">Optimal (held-out)</div><div class="v" id="supAcc">—</div></div>
       </div>
       <button class="primary" id="supBtn" data-tip="Step 1: teach this network from 4,520 positions labeled by minimax. About 10 seconds. Then play it.">Train (100 epochs)</button>
-      <progress id="supProg" value="0" max="100"></progress>
+      <progress id="supProg" value="0" max="100" title="Supervised training progress: 100 epochs."></progress>
 
       <h3 style="color:var(--rl)">Reinforce — learn from wins and losses only</h3>
       <div id="rlStatus" class="status untrained">Untrained — weights are random</div>
       <div class="stats">
-        <div class="stat"><div class="k">Games played</div><div class="v" id="rlGames">0</div></div>
-        <div class="stat"><div class="k">Lost (recent)</div><div class="v" id="rlLoss">—</div></div>
-        <div class="stat"><div class="k">Optimal (all)</div><div class="v" id="rlAcc">—</div></div>
+        <div class="stat" title="Total games the network has played so far: 60% against itself, 20% against a random player, 20% against minimax. It learns only from how each game ended."><div class="k">Games played</div><div class="v" id="rlGames">0</div></div>
+        <div class="stat" title="Share of the last 400 games against the random and minimax opponents that the network lost. Watch it fall as the network learns to block."><div class="k">Lost (recent)</div><div class="v" id="rlLoss">—</div></div>
+        <div class="stat" title="How often the network's top choice is one of minimax's best moves, over all 4,520 positions. It stays well below the supervised network because it only learns the positions it actually reaches, and it only learns to avoid losing, not which of several good moves is best."><div class="k">Optimal (all)</div><div class="v" id="rlAcc">—</div></div>
       </div>
       <button class="rl" id="rlBtn" data-tip="Step 2: let this network learn by playing games. It is never shown a correct answer. About a minute. Then play it.">Train (320,000 games)</button>
       <button id="resetBtn" title="Throw away both networks and start again from new random weights.">Reset both</button>
-      <progress id="rlProg" value="0" max="8000"></progress>
+      <progress id="rlProg" value="0" max="8000" title="Reinforce training progress: 8,000 rounds of 40 games."></progress>
 
       <h3>How often each network picks an optimal move</h3>
-      <canvas id="curve" width="800" height="320"></canvas>
+      <canvas id="curve" width="800" height="320" title="Learning curves: how often each network's top choice is an optimal move, over all 4,520 positions, as training goes on. Blue = supervised, orange = reinforce."></canvas>
       <div class="curveKey"><b style="background:var(--accent)"></b>supervised &nbsp; <b style="background:var(--rl)"></b>reinforce &nbsp; · measured over all 4,520 positions</div>
 
       <details>
@@ -178,7 +178,7 @@ dz2[k] = G * (probs[k] - (k === myMove ? 1 : 0));
     <p class="tblNote" style="margin:0 0 10px">100 games per cell, networks play their most likely move (no exploration). Minimax picks randomly among its equally-best moves. Playing O against minimax is the hard case: X has the initiative and O must find the one saving reply every time.</p>
     <button id="evalBtn" title="Step 3: after training, play 100 games per cell to see how each model really does.">Evaluate all players</button>
     <table class="rulesTbl" style="margin-top:12px">
-      <thead><tr><th>Player</th><th>Optimal moves</th><th>vs random as X</th><th>vs random as O</th><th>vs minimax as X</th><th>vs minimax as O</th></tr></thead>
+      <thead><tr><th title="Which model is playing.">Player</th><th title="How often the model's top choice is one of minimax's best moves, over all 4,520 positions.">Optimal moves</th><th title="100 games going first against a player that picks random squares. Won / drew / lost.">vs random as X</th><th title="100 games going second against a player that picks random squares. Won / drew / lost.">vs random as O</th><th title="100 games going first against the perfect player. The best possible result is 100 draws.">vs minimax as X</th><th title="100 games going second against the perfect player. The hardest case: O must find the one saving reply every time.">vs minimax as O</th></tr></thead>
       <tbody id="scoreRows"></tbody>
     </table>
     <div class="tblNote">Cells show won / drew / lost.</div>
