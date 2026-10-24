@@ -100,6 +100,7 @@
       <div class="board" id="board"></div>
       <div class="legend" id="legend"></div>
       <div style="text-align:center;margin-top:12px"><button id="newGameBtn">New game</button></div>
+      <p class="tblNote" style="text-align:center">Switch opponents mid-game: the board stays, and the numbers change to show what <i>that</i> model would play from here.</p>
 
       <details>
         <summary>What the network sees</summary>
@@ -626,7 +627,9 @@ $("board").addEventListener("click", function (e) {
 });
 $("oppSeg").addEventListener("click", function (e) {
   if (e.target.tagName !== "BUTTON") return;
-  game.opp = e.target.getAttribute("data-opp"); setSeg(); newGame();
+  game.opp = e.target.getAttribute("data-opp"); setSeg();
+  renderBoard();                                   // keep the board: compare what each model would play here
+  if (!game.over && game.player !== game.side) setTimeout(computerMove, 350);
 });
 $("sideSeg").addEventListener("click", function (e) {
   if (e.target.tagName !== "BUTTON") return;
