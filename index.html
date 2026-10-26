@@ -95,7 +95,7 @@
 </head>
 <body>
 <div class="wrap">
-  <nav class="series" aria-label="Neural network demo series"><a href="https://professor-jeff.github.io/pick-activity/" title="Previous demo in the series">← Previous: Pick Activity</a><span>Part 2 of 3 · neural network demos</span><a href="https://professor-jeff.github.io/happy-face-nn/" title="Next demo in the series">Next: Happy Face →</a></nav>
+  <nav class="series" aria-label="Neural network demo series"><a href="https://professor-jeff.github.io/pick-activity/" title="Previous demo in the series">← Previous: Pick Activity</a><span>Part 2 of 4 · neural network demos</span><a href="https://professor-jeff.github.io/happy-face-nn/" title="Next demo in the series">Next: Happy Face →</a></nav>
   <h1>Tic-Tac-Toe: one neural network, trained two ways</h1>
   <p class="sub">9 inputs → 128 hidden neurons → 9 outputs, the same kind of network as <a href="https://professor-jeff.github.io/pick-activity/">Pick Activity</a>.
     One copy learns from <b>answers</b> that a perfect player (minimax) labels. A second copy gets <b>no answers at all</b>: it plays games and learns only from winning and losing.
@@ -198,7 +198,7 @@ dz2[k] = G * (probs[k] - (k === myMove ? 1 : 0));
   <p class="sub" style="margin-top:18px">
     Notice: the supervised network picks an optimal move ~99% of the time and can still drop a game as O, because its rare mistakes land in exactly the forced positions. The reinforce network is only ~75% "optimal" yet never loses as X: it never cared which of several equally good moves it took, it only learned not to lose in the positions it actually reached. Same network, different training signal, different lesson learned.
   </p>
-  <nav class="series bottom" aria-label="Neural network demo series"><a href="https://professor-jeff.github.io/pick-activity/" title="Previous demo in the series">← Previous: Pick Activity</a><span>Part 2 of 3 · neural network demos</span><a href="https://professor-jeff.github.io/happy-face-nn/" title="Next demo in the series">Next: Happy Face →</a></nav>
+  <nav class="series bottom" aria-label="Neural network demo series"><a href="https://professor-jeff.github.io/pick-activity/" title="Previous demo in the series">← Previous: Pick Activity</a><span>Part 2 of 4 · neural network demos</span><a href="https://professor-jeff.github.io/happy-face-nn/" title="Next demo in the series">Next: Happy Face →</a></nav>
 </div>
 
 <dialog id="netDialog">
