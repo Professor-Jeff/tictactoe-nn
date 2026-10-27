@@ -48,7 +48,7 @@
   .dataWrap .rulesTbl td.idx { color: var(--muted); font-size: .8rem; }
   .mini { font-family: ui-monospace, Menlo, monospace; white-space: pre; font-size: .8rem; line-height: 1.1; }
   /* game board */
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 0 8px 8px 0; }
+  .seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 0 8px 8px 0; }
   .seg button { margin: 0; border: 0; border-radius: 0; padding: 8px 12px; font-size: .9rem; }
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button.on { background: var(--ink); color: #fff; }
@@ -91,6 +91,7 @@
   .series a { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; }
   .series a:hover, .series a:focus-visible { text-decoration: underline; }
   .series.bottom { margin: 28px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+  @media (max-width: 600px) { .series { flex-wrap: wrap; } .series > span { order: 3; width: 100%; text-align: center; } }
 </style>
 </head>
 <body>
@@ -188,10 +189,12 @@ dz2[k] = G * (probs[k] - (k === myMove ? 1 : 0));
     <h2>Scoreboard</h2>
     <p class="tblNote" style="margin:0 0 10px">100 games per cell, networks play their most likely move (no exploration). Minimax picks randomly among its equally-best moves. Playing O against minimax is the hard case: X has the initiative and O must find the one saving reply every time.</p>
     <button id="evalBtn" title="Step 3: after training, play 100 games per cell to see how each model really does.">Evaluate all players</button>
-    <table class="rulesTbl" style="margin-top:12px">
+    <div style="overflow-x:auto;margin-top:12px">
+    <table class="rulesTbl">
       <thead><tr><th title="Which model is playing.">Player</th><th title="How often the model's top choice is one of minimax's best moves, over all 4,520 positions.">Optimal moves</th><th title="100 games going first against a player that picks random squares. Won / drew / lost.">vs random as X</th><th title="100 games going second against a player that picks random squares. Won / drew / lost.">vs random as O</th><th title="100 games going first against the perfect player. The best possible result is 100 draws.">vs minimax as X</th><th title="100 games going second against the perfect player. The hardest case: O must find the one saving reply every time.">vs minimax as O</th></tr></thead>
       <tbody id="scoreRows"></tbody>
     </table>
+    </div>
     <div class="tblNote">Cells show won / drew / lost.</div>
   </div>
 
